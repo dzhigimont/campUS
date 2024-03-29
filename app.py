@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import validates
 from cryptography.fernet import Fernet
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -69,6 +70,11 @@ class User(db.Model, UserMixin):
     nama = db.Column(db.String(100), nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False)
+    
+    @validates('password')
+    def validate_password(self, key, password):
+        assert len(password) <=3
+        return password
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -99,11 +105,11 @@ def register():
 
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            flash('Username sudah digunakan. Silakan pilih username lain.', 'error')
+            flash(f'Username already exist {existing_user.name}. Silakan pilih username lain.', 'error')
             return redirect(url_for('register'))
 
         if password != confirm_password:
-            flash('Konfirmasi password tidak sesuai.', 'error')
+            flash('password tidak sesuai.', 'error')
             return redirect(url_for('register'))
 
         _hashed_password = generate_password_hash(password)
